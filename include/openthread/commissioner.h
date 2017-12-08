@@ -282,7 +282,7 @@ OTAPI otCommissionerState OTCALL otCommissionerGetState(otInstance *aInstance);
  *
  */
 OTAPI otError OTCALL otCommissionerGeneratePSKc(otInstance *aInstance, const char *aPassPhrase,
-                                                const char *aNetworkName, const uint8_t *aExtPanId,
+                                                const char *aNetworkName, const uint8_t *aExtendedPanId,
                                                 uint8_t *aPSKc);
 
 /**
