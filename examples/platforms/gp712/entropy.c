@@ -41,7 +41,7 @@
 
 #include "utils/code_utils.h"
 
-#if __SANITIZE_ADDRESS__ != 0
+#if defined(__SANITIZE_ADDRESS__) && __SANITIZE_ADDRESS__ != 0
 
 static uint32_t sState = 1;
 
@@ -49,14 +49,14 @@ static uint32_t sState = 1;
 
 void qorvoRandomInit(void)
 {
-#if __SANITIZE_ADDRESS__ != 0
+#if defined(__SANITIZE_ADDRESS__) && __SANITIZE_ADDRESS__ != 0
 
     sState = (uint32_t)time(NULL);
 
 #endif // __SANITIZE_ADDRESS__
 }
 
-#if __SANITIZE_ADDRESS__ != 0
+#if defined(__SANITIZE_ADDRESS__) && __SANITIZE_ADDRESS__ != 0
 
 static uint32_t randomUint32Get(void)
 {
@@ -86,7 +86,7 @@ otError otPlatEntropyGet(uint8_t *aOutput, uint16_t aOutputLength)
 {
     otError error = OT_ERROR_NONE;
 
-#if __SANITIZE_ADDRESS__ == 0
+#if !defined(__SANITIZE_ADDRESS__) || __SANITIZE_ADDRESS__ == 0
 
     FILE * file = NULL;
     size_t readLength;
