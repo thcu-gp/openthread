@@ -120,7 +120,6 @@ otError otPlatUartEnable(void)
     otError        error = OT_ERROR_NONE;
     struct termios termios;
 
-
 #ifdef __linux__
     // Ensure we terminate this process if the
     // parent process dies.
@@ -201,7 +200,6 @@ exit:
 otError otPlatUartDisable(void)
 {
     otError error = OT_ERROR_NONE;
-
 
     close(s_in_fd);
     close(s_out_fd);
@@ -292,7 +290,6 @@ void platformUartProcess(void)
         {s_in_fd, POLLIN | error_flags, 0},
         {s_out_fd, POLLOUT | error_flags, 0},
     };
-
 
     errno = 0;
 

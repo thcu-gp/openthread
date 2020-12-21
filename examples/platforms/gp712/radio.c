@@ -77,7 +77,7 @@ typedef struct otCachedSettings_s
 
 static otCachedSettings_t otCachedSettings;
 
-/* Upper layer relies on txpower could be set before receive, but MAC have per-channel config for it. 
+/* Upper layer relies on txpower could be set before receive, but MAC have per-channel config for it.
    Store txpower until channel set in Receive(). */
 #define PENDING_TX_POWER_NONE (-1)
 int8_t pendingTxPower = PENDING_TX_POWER_NONE;
@@ -169,7 +169,7 @@ otError otPlatRadioSleep(otInstance *aInstance)
 otError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 {
     otError error = OT_ERROR_INVALID_STATE;
-    
+
     pQorvoInstance = aInstance;
 
     if ((sState != OT_RADIO_STATE_DISABLED) && (sScanstate == 0))
@@ -195,7 +195,7 @@ otError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 
 otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aPacket)
 {
-    otError err = OT_ERROR_NONE;
+    otError err    = OT_ERROR_NONE;
     pQorvoInstance = aInstance;
 
     otEXPECT_ACTION(sState != OT_RADIO_STATE_DISABLED, err = OT_ERROR_INVALID_STATE);
@@ -357,7 +357,7 @@ otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
 
     if (result == OT_ERROR_INVALID_STATE)
     {
-        //Channel was not set, so txpower is ambigious
+        // Channel was not set, so txpower is ambigious
         *aPower = (pendingTxPower == PENDING_TX_POWER_NONE) ? 0 : pendingTxPower;
         return OT_ERROR_NONE;
     }
@@ -381,9 +381,9 @@ otError otPlatRadioSetTransmitPower(otInstance *aInstance, int8_t aPower)
 
     if (result == OT_ERROR_INVALID_STATE)
     {
-        //Channel was not set, so txpower is ambigious
+        // Channel was not set, so txpower is ambigious
         pendingTxPower = aPower;
-        result = OT_ERROR_NONE;
+        result         = OT_ERROR_NONE;
     }
 
     return result;

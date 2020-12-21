@@ -76,7 +76,6 @@ void otSysInit(int argc, char *argv[])
     qorvoAlarmInit();
     qorvoRandomInit();
     qorvoRadioInit();
-
 }
 
 bool otSysPseudoResetWasRequested(void)
