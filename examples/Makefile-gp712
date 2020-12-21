@@ -76,7 +76,6 @@ COMMONCFLAGS                             := \
     -Wextra                                 \
     -Wall                                   \
     -Wno-psabi                              \
-    $(NULL)
 
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/common-switches.mk
 
