@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020, The OpenThread Authors.
+ *  Copyright (c) 2021, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,68 +26,45 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef OT_POSIX_PLATFORM_MAX_POWER_TABLE_HPP_
-#define OT_POSIX_PLATFORM_MAX_POWER_TABLE_HPP_
+#include "openthread-posix-config.h"
+#include "platform-posix.h"
 
-#include "core/radio/radio.hpp"
+#include <arpa/inet.h>
 
 namespace ot {
 namespace Posix {
+namespace Ip6Utils {
 
-class MaxPowerTable
+/**
+ * This utility class converts binary IPv6 address to text format.
+ *
+ */
+class Ip6AddressString
 {
 public:
-    static const int8_t kPowerDefault = 30; ///< Default power 1 watt (30 dBm).
-
-    MaxPowerTable(void) { memset(mPowerTable, kPowerForbidden, sizeof(mPowerTable)); }
-
     /**
-     * This method gets the max allowed transmit power of channel @p aChannel.
+     * The constructor of this converter.
      *
-     * @params[in]  aChannel    The radio channel number.
-     *
-     * @returns The max allowed transmit power in dBm.
+     * @param[in]   aAddress    A pointer to a buffer holding an IPv6 address.
      *
      */
-    int8_t GetTransmitPower(uint8_t aChannel) const { return mPowerTable[aChannel - Radio::kChannelMin]; }
-
-    /**
-     * This method sets the max allowed transmit power of channel @p aChannel.
-     *
-     * @params[in]  aChannel    The radio channel number.
-     * @params[in]  aPower      The max allowed transmit power in dBm.
-     *
-     */
-    void SetTransmitPower(uint8_t aChannel, int8_t aPower) { mPowerTable[aChannel - Radio::kChannelMin] = aPower; }
-
-    /**
-     * This method gets the allowed channel masks.
-     *
-     * All channels of max power value of 0x7f is considered forbidden.
-     *
-     */
-    uint32_t GetAllowedChannelMask(void) const
+    Ip6AddressString(const void *aAddress)
     {
-        uint32_t channelMask = 0;
-
-        for (uint8_t i = Radio::kChannelMin; i <= Radio::kChannelMax; ++i)
-        {
-            if (mPowerTable[i - Radio::kChannelMin] != kPowerForbidden)
-            {
-                channelMask |= (1 << i);
-            }
-        }
-
-        return channelMask;
+        VerifyOrDie(inet_ntop(AF_INET6, aAddress, mBuffer, sizeof(mBuffer)) != nullptr, OT_EXIT_ERROR_ERRNO);
     }
 
-private:
-    static const int8_t kPowerForbidden = 0x7f;
+    /**
+     * This method returns the string as a null-terminated C string.
+     *
+     * @returns The null-terminated C string.
+     *
+     */
+    const char *AsCString(void) const { return mBuffer; }
 
-    int8_t mPowerTable[Radio::kChannelMax - Radio::kChannelMin + 1];
+private:
+    char mBuffer[INET6_ADDRSTRLEN];
 };
 
+} // namespace Ip6Utils
 } // namespace Posix
 } // namespace ot
-
-#endif // OT_POSIX_PLATFORM_MAX_POWER_TABLE_HPP_

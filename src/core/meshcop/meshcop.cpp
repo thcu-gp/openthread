@@ -37,6 +37,7 @@
 #include "common/debug.hpp"
 #include "common/locator-getters.hpp"
 #include "common/logging.hpp"
+#include "common/string.hpp"
 #include "crypto/pbkdf2_cmac.h"
 #include "crypto/sha256.hpp"
 #include "mac/mac_types.hpp"
@@ -286,14 +287,14 @@ bool SteeringData::DoesAllMatch(uint8_t aMatch) const
 
 void ComputeJoinerId(const Mac::ExtAddress &aEui64, Mac::ExtAddress &aJoinerId)
 {
-    Crypto::Sha256 sha256;
-    uint8_t        hash[Crypto::Sha256::kHashSize];
+    Crypto::Sha256       sha256;
+    Crypto::Sha256::Hash hash;
 
     sha256.Start();
-    sha256.Update(aEui64.m8, sizeof(aEui64));
+    sha256.Update(aEui64);
     sha256.Finish(hash);
 
-    memcpy(&aJoinerId, hash, sizeof(aJoinerId));
+    memcpy(&aJoinerId, hash.GetBytes(), sizeof(aJoinerId));
     aJoinerId.SetLocal(true);
 }
 
@@ -324,6 +325,8 @@ otError GeneratePskc(const char *              aPassPhrase,
     uint16_t   saltLen = 0;
     uint16_t   passphraseLen;
     uint8_t    networkNameLen;
+
+    VerifyOrExit(IsValidUtf8String(aPassPhrase), error = OT_ERROR_INVALID_ARGS);
 
     passphraseLen  = static_cast<uint16_t>(StringLength(aPassPhrase, OT_COMMISSIONING_PASSPHRASE_MAX_SIZE + 1));
     networkNameLen = static_cast<uint8_t>(StringLength(aNetworkName.GetAsCString(), OT_NETWORK_NAME_MAX_SIZE + 1));

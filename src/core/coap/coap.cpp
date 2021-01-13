@@ -217,6 +217,7 @@ otError CoapBase::SendMessage(Message &               aMessage,
         metadata.mSourceAddress            = aMessageInfo.GetSockAddr();
         metadata.mDestinationPort          = aMessageInfo.GetPeerPort();
         metadata.mDestinationAddress       = aMessageInfo.GetPeerAddr();
+        metadata.mMulticastLoop            = aMessageInfo.GetMulticastLoop();
         metadata.mResponseHandler          = aHandler;
         metadata.mResponseContext          = aContext;
         metadata.mRetransmissionsRemaining = aTxParameters.mMaxRetransmit;
@@ -383,6 +384,7 @@ void CoapBase::HandleRetransmissionTimer(void)
                 messageInfo.SetHopLimit(metadata.mHopLimit);
                 messageInfo.SetIsHostInterface(metadata.mIsHostInterface);
 #endif
+                messageInfo.SetMulticastLoop(metadata.mMulticastLoop);
 
                 SendCopy(*message, messageInfo);
             }
@@ -948,8 +950,8 @@ bool TxParameters::IsValid(void) const
         // Calulate exchange lifetime step by step and verify no overflow.
         uint32_t tmp = Multiply(mAckTimeout, (1U << (mMaxRetransmit + 1)) - 1);
 
-        tmp /= mAckRandomFactorDenominator;
         tmp = Multiply(tmp, mAckRandomFactorNumerator);
+        tmp /= mAckRandomFactorDenominator;
 
         rval = (tmp != 0 && (tmp + mAckTimeout + 2 * kDefaultMaxLatency) > tmp);
     }

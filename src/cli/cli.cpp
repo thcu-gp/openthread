@@ -35,6 +35,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <openthread/diag.h>
 #include <openthread/icmp6.h>
@@ -300,12 +301,14 @@ otError Interpreter::ProcessBackboneRouter(uint8_t aArgsLength, char *aArgs[])
 #if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
         if (strcmp(aArgs[0], "mgmt") == 0)
         {
-            uint8_t status;
-
-            VerifyOrExit(aArgsLength >= 2, error = OT_ERROR_INVALID_COMMAND);
-
-            if (strcmp(aArgs[1], "dua") == 0)
+            if (aArgsLength < 2)
             {
+                ExitNow(error = OT_ERROR_INVALID_COMMAND);
+            }
+#if OPENTHREAD_CONFIG_BACKBONE_ROUTER_DUA_NDPROXYING_ENABLE
+            else if (strcmp(aArgs[1], "dua") == 0)
+            {
+                uint8_t                   status;
                 otIp6InterfaceIdentifier *mlIid = nullptr;
                 otIp6InterfaceIdentifier  iid;
 
@@ -322,11 +325,14 @@ otError Interpreter::ProcessBackboneRouter(uint8_t aArgsLength, char *aArgs[])
                 otBackboneRouterConfigNextDuaRegistrationResponse(mInstance, mlIid, status);
                 ExitNow();
             }
+#endif
+#if OPENTHREAD_CONFIG_BACKBONE_ROUTER_MULTICAST_ROUTING_ENABLE
             else if (strcmp(aArgs[1], "mlr") == 0)
             {
                 error = ProcessBackboneRouterMgmtMlr(aArgsLength - 2, aArgs + 2);
                 ExitNow();
             }
+#endif
         }
 #endif // OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
         SuccessOrExit(error = ProcessBackboneRouterLocal(aArgsLength, aArgs));
@@ -339,7 +345,7 @@ exit:
 
 #if OPENTHREAD_FTD && OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE
 
-#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE && OPENTHREAD_CONFIG_BACKBONE_ROUTER_MULTICAST_ROUTING_ENABLE
 otError Interpreter::ProcessBackboneRouterMgmtMlr(uint8_t aArgsLength, char *aArgs[])
 {
     otError error = OT_ERROR_INVALID_COMMAND;
@@ -405,7 +411,7 @@ void Interpreter::PrintMulticastListenersTable(void)
     }
 }
 
-#endif // OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+#endif // OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE && OPENTHREAD_CONFIG_BACKBONE_ROUTER_MULTICAST_ROUTING_ENABLE
 
 otError Interpreter::ProcessBackboneRouterLocal(uint8_t aArgsLength, char *aArgs[])
 {
@@ -1547,7 +1553,7 @@ otError Interpreter::ProcessFake(uint8_t aArgsLength, char *aArgs[])
         SuccessOrExit(error = ParseAsHexString(aArgs[3], mlIid.mFields.m8));
         otThreadSendAddressNotification(mInstance, &destination, &target, &mlIid);
     }
-#if OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_ROUTER_DUA_NDPROXYING_ENABLE
     else if (strcmp(aArgs[0], "/b/ba") == 0)
     {
         otIp6Address             target;
@@ -1881,23 +1887,37 @@ exit:
 }
 
 #if OPENTHREAD_FTD
-otError Interpreter::ProcessLeaderPartitionId(uint8_t aArgsLength, char *aArgs[])
+otError Interpreter::ProcessPartitionId(uint8_t aArgsLength, char *aArgs[])
 {
-    otError error = OT_ERROR_NONE;
+    OT_UNUSED_VARIABLE(aArgs);
+
+    otError error = OT_ERROR_INVALID_COMMAND;
 
     if (aArgsLength == 0)
     {
-        OutputLine("%u", otThreadGetLocalLeaderPartitionId(mInstance));
+        OutputLine("%u", otThreadGetPartitionId(mInstance));
+        error = OT_ERROR_NONE;
     }
-    else
+#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+    else if (strcmp(aArgs[0], "preferred") == 0)
     {
-        uint32_t partitionId;
+        if (aArgsLength == 1)
+        {
+            OutputLine("%u", otThreadGetPreferredLeaderPartitionId(mInstance));
+            error = OT_ERROR_NONE;
+        }
+        else if (aArgsLength == 2)
+        {
+            uint32_t partitionId;
 
-        SuccessOrExit(error = ParseAsUint32(aArgs[0], partitionId));
-        otThreadSetLocalLeaderPartitionId(mInstance, partitionId);
+            SuccessOrExit(error = ParseAsUint32(aArgs[1], partitionId));
+            otThreadSetPreferredLeaderPartitionId(mInstance, partitionId);
+        }
     }
 
 exit:
+#endif
+
     return error;
 }
 
@@ -1931,38 +1951,43 @@ void Interpreter::HandleLinkMetricsReport(const otIp6Address *       aAddress,
     static_cast<Interpreter *>(aContext)->HandleLinkMetricsReport(aAddress, aMetricsValues, aStatus);
 }
 
-void Interpreter::HandleLinkMetricsReport(const otIp6Address *       aAddress,
-                                          const otLinkMetricsValues *aMetricsValues,
-                                          uint8_t                    aStatus)
+void Interpreter::PrintLinkMetricsValue(const otLinkMetricsValues *aMetricsValues)
 {
     const char kLinkMetricsTypeCount[]   = "(Count/Summation)";
     const char kLinkMetricsTypeAverage[] = "(Exponential Moving Average)";
 
+    if (aMetricsValues->mMetrics.mPduCount)
+    {
+        OutputLine(" - PDU Counter: %d %s", aMetricsValues->mPduCountValue, kLinkMetricsTypeCount);
+    }
+
+    if (aMetricsValues->mMetrics.mLqi)
+    {
+        OutputLine(" - LQI: %d %s", aMetricsValues->mLqiValue, kLinkMetricsTypeAverage);
+    }
+
+    if (aMetricsValues->mMetrics.mLinkMargin)
+    {
+        OutputLine(" - Margin: %d (dB) %s", aMetricsValues->mLinkMarginValue, kLinkMetricsTypeAverage);
+    }
+
+    if (aMetricsValues->mMetrics.mRssi)
+    {
+        OutputLine(" - RSSI: %d (dBm) %s", aMetricsValues->mRssiValue, kLinkMetricsTypeAverage);
+    }
+}
+
+void Interpreter::HandleLinkMetricsReport(const otIp6Address *       aAddress,
+                                          const otLinkMetricsValues *aMetricsValues,
+                                          uint8_t                    aStatus)
+{
     OutputFormat("Received Link Metrics Report from: ");
     OutputIp6Address(*aAddress);
     OutputLine("");
 
     if (aMetricsValues != nullptr)
     {
-        if (aMetricsValues->mMetrics.mPduCount)
-        {
-            OutputLine(" - PDU Counter: %d %s", aMetricsValues->mPduCountValue, kLinkMetricsTypeCount);
-        }
-
-        if (aMetricsValues->mMetrics.mLqi)
-        {
-            OutputLine(" - LQI: %d %s", aMetricsValues->mLqiValue, kLinkMetricsTypeAverage);
-        }
-
-        if (aMetricsValues->mMetrics.mLinkMargin)
-        {
-            OutputLine(" - Margin: %d (dB) %s", aMetricsValues->mLinkMarginValue, kLinkMetricsTypeAverage);
-        }
-
-        if (aMetricsValues->mMetrics.mRssi)
-        {
-            OutputLine(" - RSSI: %d (dBm) %s", aMetricsValues->mRssiValue, kLinkMetricsTypeAverage);
-        }
+        PrintLinkMetricsValue(aMetricsValues);
     }
     else
     {
@@ -1982,6 +2007,29 @@ void Interpreter::HandleLinkMetricsMgmtResponse(const otIp6Address *aAddress, ui
     OutputLine("");
 
     OutputLine("Status: %s", LinkMetricsStatusToStr(aStatus));
+}
+
+void Interpreter::HandleLinkMetricsEnhAckProbingIe(otShortAddress             aShortAddress,
+                                                   const otExtAddress *       aExtAddress,
+                                                   const otLinkMetricsValues *aMetricsValues,
+                                                   void *                     aContext)
+{
+    static_cast<Interpreter *>(aContext)->HandleLinkMetricsEnhAckProbingIe(aShortAddress, aExtAddress, aMetricsValues);
+}
+
+void Interpreter::HandleLinkMetricsEnhAckProbingIe(otShortAddress             aShortAddress,
+                                                   const otExtAddress *       aExtAddress,
+                                                   const otLinkMetricsValues *aMetricsValues)
+{
+    OutputFormat("Received Link Metrics data in Enh Ack from neighbor, short address:0x%02x , extended address:",
+                 aShortAddress);
+    OutputExtAddress(*aExtAddress);
+    OutputLine("");
+
+    if (aMetricsValues != nullptr)
+    {
+        PrintLinkMetricsValue(aMetricsValues);
+    }
 }
 
 const char *Interpreter::LinkMetricsStatusToStr(uint8_t aStatus)
@@ -2174,6 +2222,40 @@ otError Interpreter::ProcessLinkMetricsMgmt(uint8_t aArgsLength, char *aArgs[])
                                                          clear ? nullptr : &linkMetrics,
                                                          &Interpreter::HandleLinkMetricsMgmtResponse, this);
     }
+    else if (strcmp(aArgs[1], "enhanced-ack") == 0)
+    {
+        otLinkMetricsEnhAckFlags enhAckFlags;
+        otLinkMetrics            linkMetrics;
+        otLinkMetrics *          pLinkMetrics = &linkMetrics;
+
+        VerifyOrExit(aArgsLength >= 3);
+
+        if (strcmp(aArgs[2], "clear") == 0)
+        {
+            enhAckFlags  = OT_LINK_METRICS_ENH_ACK_CLEAR;
+            pLinkMetrics = nullptr;
+        }
+        else if (strcmp(aArgs[2], "register") == 0)
+        {
+            enhAckFlags = OT_LINK_METRICS_ENH_ACK_REGISTER;
+            VerifyOrExit(aArgsLength >= 4);
+            SuccessOrExit(error = ParseLinkMetricsFlags(linkMetrics, aArgs[3]));
+#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+            if (aArgsLength > 4 && strcmp(aArgs[4], "r") == 0)
+            {
+                linkMetrics.mReserved = true;
+            }
+#endif
+        }
+        else
+        {
+            ExitNow();
+        }
+
+        error = otLinkMetricsConfigEnhAckProbing(mInstance, &address, enhAckFlags, pLinkMetrics,
+                                                 &Interpreter::HandleLinkMetricsMgmtResponse, this,
+                                                 &Interpreter::HandleLinkMetricsEnhAckProbingIe, this);
+    }
 
 exit:
     return error;
@@ -2259,7 +2341,7 @@ exit:
     return error;
 }
 
-#if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+#if OPENTHREAD_FTD && OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
 
 otError Interpreter::ProcessMlr(uint8_t aArgsLength, char *aArgs[])
 {
@@ -2344,7 +2426,7 @@ void Interpreter::HandleMlrRegResult(otError             aError,
     OutputResult(aError);
 }
 
-#endif // OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+#endif // (OPENTHREAD_FTD && OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE) && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
 
 otError Interpreter::ProcessMode(uint8_t aArgsLength, char *aArgs[])
 {
@@ -3235,6 +3317,29 @@ exit:
     return error;
 }
 
+otError Interpreter::ProcessRegion(uint8_t aArgsLength, char *aArgs[])
+{
+    otError  error = OT_ERROR_NONE;
+    uint16_t regionCode;
+
+    if (aArgsLength == 0)
+    {
+        SuccessOrExit(error = otPlatRadioGetRegion(mInstance, &regionCode));
+        OutputLine("%c%c", regionCode >> 8, regionCode & 0xff);
+    }
+    else
+    {
+        VerifyOrExit(strlen(aArgs[0]) == 2, error = OT_ERROR_INVALID_ARGS);
+
+        regionCode =
+            static_cast<uint16_t>(static_cast<uint16_t>(aArgs[0][0]) << 8) + static_cast<uint16_t>(aArgs[0][1]);
+        error = otPlatRadioSetRegion(mInstance, regionCode);
+    }
+
+exit:
+    return error;
+}
+
 #if OPENTHREAD_FTD
 otError Interpreter::ProcessReleaseRouterId(uint8_t aArgsLength, char *aArgs[])
 {
@@ -3387,8 +3492,8 @@ otError Interpreter::ProcessRouter(uint8_t aArgsLength, char *aArgs[])
 
         if (isTable)
         {
-            OutputLine("| ID | RLOC16 | Next Hop | Path Cost | LQ In | LQ Out | Age | Extended MAC     |");
-            OutputLine("+----+--------+----------+-----------+-------+--------+-----+------------------+");
+            OutputLine("| ID | RLOC16 | Next Hop | Path Cost | LQ In | LQ Out | Age | Extended MAC     | Link |");
+            OutputLine("+----+--------+----------+-----------+-------+--------+-----+------------------+------+");
         }
 
         maxRouterId = otThreadGetMaxRouterId(mInstance);
@@ -3411,7 +3516,7 @@ otError Interpreter::ProcessRouter(uint8_t aArgsLength, char *aArgs[])
                 OutputFormat("| %3d ", routerInfo.mAge);
                 OutputFormat("| ");
                 OutputExtAddress(routerInfo.mExtAddress);
-                OutputLine(" |");
+                OutputLine(" | %4d |", routerInfo.mLinkEstablished);
             }
             else
             {
@@ -4450,7 +4555,9 @@ void Interpreter::HandleDiagnosticGetResponse(otError              aError,
         aError, aMessage, static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void Interpreter::HandleDiagnosticGetResponse(otError aError, const otMessage *aMessage, const Ip6::MessageInfo *)
+void Interpreter::HandleDiagnosticGetResponse(otError                 aError,
+                                              const otMessage *       aMessage,
+                                              const Ip6::MessageInfo *aMessageInfo)
 {
     uint8_t               buf[16];
     uint16_t              bytesToPrint;
@@ -4461,7 +4568,9 @@ void Interpreter::HandleDiagnosticGetResponse(otError aError, const otMessage *a
 
     SuccessOrExit(aError);
 
-    OutputFormat("DIAG_GET.rsp/ans: ");
+    OutputFormat("DIAG_GET.rsp/ans from ");
+    OutputIp6Address(aMessageInfo->mPeerAddr);
+    OutputFormat(": ");
 
     length = otMessageGetLength(aMessage) - otMessageGetOffset(aMessage);
 

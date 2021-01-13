@@ -74,6 +74,10 @@ if (openthread_enable_core_config_args) {
       defines += [ "OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE=1" ]
     }
 
+    if (openthread_config_border_routing_enable) {
+      defines += [ "OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE=1" ]
+    }
+
     if (openthread_external_mbedtls != "") {
       defines += [ "OPENTHREAD_CONFIG_ENABLE_BUILTIN_MBEDTLS=0" ]
     } else if (!openthread_config_enable_builtin_mbedtls_management) {
@@ -234,6 +238,7 @@ if (openthread_enable_core_config_args) {
         "OPENTHREAD_CONFIG_LOG_API=1",
         "OPENTHREAD_CONFIG_LOG_ARP=1",
         "OPENTHREAD_CONFIG_LOG_BBR=1",
+        "OPENTHREAD_CONFIG_LOG_BR=1",
         "OPENTHREAD_CONFIG_LOG_CLI=1",
         "OPENTHREAD_CONFIG_LOG_COAP=1",
         "OPENTHREAD_CONFIG_LOG_DUA=1",
@@ -250,6 +255,7 @@ if (openthread_enable_core_config_args) {
         "OPENTHREAD_CONFIG_LOG_PLATFORM=1",
         "OPENTHREAD_CONFIG_LOG_PREPEND_LEVEL=1",
         "OPENTHREAD_CONFIG_LOG_PREPEND_REGION=1",
+        "OPENTHREAD_CONFIG_LOG_SRP=1",
       ]
     }
 
@@ -318,6 +324,7 @@ openthread_core_files = [
   "api/link_raw_api.cpp",
   "api/logging_api.cpp",
   "api/message_api.cpp",
+  "api/multi_radio_api.cpp",
   "api/netdata_api.cpp",
   "api/netdiag_api.cpp",
   "api/network_time_api.cpp",
@@ -341,6 +348,11 @@ openthread_core_files = [
   "backbone_router/multicast_listeners_table.hpp",
   "backbone_router/ndproxy_table.cpp",
   "backbone_router/ndproxy_table.hpp",
+  "border_router/infra_if_platform.cpp",
+  "border_router/router_advertisement.cpp",
+  "border_router/router_advertisement.hpp",
+  "border_router/routing_manager.cpp",
+  "border_router/routing_manager.hpp",
   "coap/coap.cpp",
   "coap/coap.hpp",
   "coap/coap_message.cpp",
@@ -359,6 +371,7 @@ openthread_core_files = [
   "common/extension.hpp",
   "common/instance.cpp",
   "common/instance.hpp",
+  "common/iterator_utils.hpp",
   "common/linked_list.hpp",
   "common/locator-getters.hpp",
   "common/locator.hpp",
@@ -397,6 +410,8 @@ openthread_core_files = [
   "crypto/aes_ecb.hpp",
   "crypto/ecdsa.cpp",
   "crypto/ecdsa.hpp",
+  "crypto/hkdf_sha256.cpp",
+  "crypto/hkdf_sha256.hpp",
   "crypto/hmac_sha256.cpp",
   "crypto/hmac_sha256.hpp",
   "crypto/mbedtls.cpp",
@@ -421,6 +436,8 @@ openthread_core_files = [
   "mac/mac_filter.hpp",
   "mac/mac_frame.cpp",
   "mac/mac_frame.hpp",
+  "mac/mac_links.cpp",
+  "mac/mac_links.hpp",
   "mac/mac_types.cpp",
   "mac/mac_types.hpp",
   "mac/sub_mac.cpp",
@@ -466,6 +483,7 @@ openthread_core_files = [
   "net/dhcp6_server.hpp",
   "net/dns_client.cpp",
   "net/dns_client.hpp",
+  "net/dns_headers.cpp",
   "net/dns_headers.hpp",
   "net/icmp6.cpp",
   "net/icmp6.hpp",
@@ -491,6 +509,12 @@ openthread_core_files = [
   "radio/radio.hpp",
   "radio/radio_callbacks.cpp",
   "radio/radio_platform.cpp",
+  "radio/trel_interface.cpp",
+  "radio/trel_interface.hpp",
+  "radio/trel_link.cpp",
+  "radio/trel_link.hpp",
+  "radio/trel_packet.cpp",
+  "radio/trel_packet.hpp",
   "thread/address_resolver.cpp",
   "thread/address_resolver.hpp",
   "thread/announce_begin_server.cpp",
@@ -552,6 +576,8 @@ openthread_core_files = [
   "thread/network_diagnostic_tlvs.hpp",
   "thread/panid_query_server.cpp",
   "thread/panid_query_server.hpp",
+  "thread/radio_selector.cpp",
+  "thread/radio_selector.hpp",
   "thread/router_table.cpp",
   "thread/router_table.hpp",
   "thread/src_match_controller.cpp",
@@ -654,6 +680,7 @@ source_set("libopenthread_core_config") {
     "config/openthread-core-default-config.h",
     "config/parent_search.h",
     "config/platform.h",
+    "config/radio_link.h",
     "config/sntp_client.h",
     "config/time_sync.h",
     "config/tmf.h",

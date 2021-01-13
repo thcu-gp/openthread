@@ -67,11 +67,12 @@ otError Dataset::Info::GenerateRandom(Instance &aInstance)
 
     Clear();
 
-    mActiveTimestamp       = 1;
-    mChannel               = preferredChannels.ChooseRandomChannel();
-    mChannelMask           = supportedChannels.GetMask();
-    mSecurityPolicy.mFlags = aInstance.Get<KeyManager>().GetSecurityPolicyFlags();
-    mPanId                 = Mac::GenerateRandomPanId();
+    mActiveTimestamp              = 1;
+    mChannel                      = preferredChannels.ChooseRandomChannel();
+    mChannelMask                  = supportedChannels.GetMask();
+    mSecurityPolicy.mRotationTime = KeyManager::kDefaultKeyRotationTime;
+    mSecurityPolicy.mFlags        = KeyManager::kDefaultSecurityPolicyFlags;
+    mPanId                        = Mac::GenerateRandomPanId();
 
     SuccessOrExit(error = static_cast<MasterKey &>(mMasterKey).GenerateRandom());
     SuccessOrExit(error = static_cast<Pskc &>(mPskc).GenerateRandom());
@@ -172,7 +173,8 @@ bool Dataset::IsValid(void) const
 
     for (const Tlv *cur = GetTlvsStart(); cur < end; cur = cur->GetNext())
     {
-        VerifyOrExit((cur + 1) <= end && cur->GetNext() <= end && Tlv::IsValid(*cur), rval = false);
+        VerifyOrExit(!cur->IsExtended() && (cur + 1) <= end && cur->GetNext() <= end && Tlv::IsValid(*cur),
+                     rval = false);
     }
 
 exit:

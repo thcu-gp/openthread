@@ -299,7 +299,7 @@ private:
 
 #if OPENTHREAD_FTD && OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE
     otError ProcessBackboneRouterLocal(uint8_t aArgsLength, char *aArgs[]);
-#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
+#if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE && OPENTHREAD_CONFIG_BACKBONE_ROUTER_MULTICAST_ROUTING_ENABLE
     otError ProcessBackboneRouterMgmtMlr(uint8_t aArgsLength, char *aArgs[]);
     void    PrintMulticastListenersTable(void);
 #endif
@@ -381,7 +381,7 @@ private:
     otError ProcessKeySequence(uint8_t aArgsLength, char *aArgs[]);
     otError ProcessLeaderData(uint8_t aArgsLength, char *aArgs[]);
 #if OPENTHREAD_FTD
-    otError ProcessLeaderPartitionId(uint8_t aArgsLength, char *aArgs[]);
+    otError ProcessPartitionId(uint8_t aArgsLength, char *aArgs[]);
     otError ProcessLeaderWeight(uint8_t aArgsLength, char *aArgs[]);
 #endif
     otError ProcessMasterKey(uint8_t aArgsLength, char *aArgs[]);
@@ -393,7 +393,7 @@ private:
 
     otError ParseLinkMetricsFlags(otLinkMetrics &aLinkMetrics, char *aFlags);
 #endif
-#if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+#if OPENTHREAD_FTD && OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
     otError ProcessMlr(uint8_t aArgsLength, char *aArgs[]);
 
     otError ProcessMlrReg(uint8_t aArgsLength, char *aArgs[]);
@@ -467,6 +467,7 @@ private:
     otError ProcessPskc(uint8_t aArgsLength, char *aArgs[]);
 #endif
     otError ProcessRcp(uint8_t aArgsLength, char *aArgs[]);
+    otError ProcessRegion(uint8_t aArgsLength, char *aArgs[]);
 #if OPENTHREAD_FTD
     otError ProcessReleaseRouterId(uint8_t aArgsLength, char *aArgs[]);
 #endif
@@ -558,6 +559,8 @@ private:
     void HandleSntpResponse(uint64_t aTime, otError aResult);
 #endif
 #if OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE
+    void PrintLinkMetricsValue(const otLinkMetricsValues *aMetricsValues);
+
     static void HandleLinkMetricsReport(const otIp6Address *       aAddress,
                                         const otLinkMetricsValues *aMetricsValues,
                                         uint8_t                    aStatus,
@@ -571,8 +574,17 @@ private:
 
     void HandleLinkMetricsMgmtResponse(const otIp6Address *aAddress, uint8_t aStatus);
 
+    static void HandleLinkMetricsEnhAckProbingIe(otShortAddress             aShortAddress,
+                                                 const otExtAddress *       aExtAddress,
+                                                 const otLinkMetricsValues *aMetricsValues,
+                                                 void *                     aContext);
+
+    void HandleLinkMetricsEnhAckProbingIe(otShortAddress             aShortAddress,
+                                          const otExtAddress *       aExtAddress,
+                                          const otLinkMetricsValues *aMetricsValues);
+
     const char *LinkMetricsStatusToStr(uint8_t aStatus);
-#endif
+#endif // OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE
 
     static Interpreter &GetOwner(OwnerLocator &aOwnerLocator);
 
@@ -661,7 +673,6 @@ private:
         {"keysequence", &Interpreter::ProcessKeySequence},
         {"leaderdata", &Interpreter::ProcessLeaderData},
 #if OPENTHREAD_FTD
-        {"leaderpartitionid", &Interpreter::ProcessLeaderPartitionId},
         {"leaderweight", &Interpreter::ProcessLeaderWeight},
 #endif
 #if OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE
@@ -673,7 +684,7 @@ private:
         {"macfilter", &Interpreter::ProcessMacFilter},
 #endif
         {"masterkey", &Interpreter::ProcessMasterKey},
-#if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+#if (OPENTHREAD_FTD && OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE) && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
         {"mlr", &Interpreter::ProcessMlr},
 #endif
         {"mode", &Interpreter::ProcessMode},
@@ -699,6 +710,7 @@ private:
         {"parent", &Interpreter::ProcessParent},
 #if OPENTHREAD_FTD
         {"parentpriority", &Interpreter::ProcessParentPriority},
+        {"partitionid", &Interpreter::ProcessPartitionId},
 #endif
         {"ping", &Interpreter::ProcessPing},
         {"pollperiod", &Interpreter::ProcessPollPeriod},
@@ -713,6 +725,7 @@ private:
         {"pskc", &Interpreter::ProcessPskc},
 #endif
         {"rcp", &Interpreter::ProcessRcp},
+        {"region", &Interpreter::ProcessRegion},
 #if OPENTHREAD_FTD
         {"releaserouterid", &Interpreter::ProcessReleaseRouterId},
 #endif

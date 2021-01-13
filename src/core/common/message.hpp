@@ -54,6 +54,13 @@
 
 namespace ot {
 
+namespace Crypto {
+
+class Sha256;
+class HmacSha256;
+
+} // namespace Crypto
+
 /**
  * @addtogroup core-message
  *
@@ -165,18 +172,25 @@ struct MessageMetadata
         uint8_t  mChannel; ///< Used for MLE Announce.
     } mPanIdChannel;       ///< Used for MLE Discover Request, Response, and Announce messages.
 
-    uint8_t mType : 3;         ///< Identifies the type of message.
-    uint8_t mSubType : 4;      ///< Identifies the message sub type.
-    bool    mDirectTx : 1;     ///< Used to indicate whether a direct transmission is required.
-    bool    mLinkSecurity : 1; ///< Indicates whether or not link security is enabled.
-    uint8_t mPriority : 2;     ///< Identifies the message priority level (higher value is higher priority).
-    bool    mInPriorityQ : 1;  ///< Indicates whether the message is queued in normal or priority queue.
-    bool    mTxSuccess : 1;    ///< Indicates whether the direct tx of the message was successful.
-    bool    mDoNotEvict : 1;   ///< Indicates whether or not this message may be evicted.
+    uint8_t mType : 3;          ///< Identifies the type of message.
+    uint8_t mSubType : 4;       ///< Identifies the message sub type.
+    bool    mDirectTx : 1;      ///< Used to indicate whether a direct transmission is required.
+    bool    mLinkSecurity : 1;  ///< Indicates whether or not link security is enabled.
+    uint8_t mPriority : 2;      ///< Identifies the message priority level (higher value is higher priority).
+    bool    mInPriorityQ : 1;   ///< Indicates whether the message is queued in normal or priority queue.
+    bool    mTxSuccess : 1;     ///< Indicates whether the direct tx of the message was successful.
+    bool    mDoNotEvict : 1;    ///< Indicates whether or not this message may be evicted.
+    bool    mMulticastLoop : 1; ///< Indicates whether or not this multicast message may be looped back.
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     bool    mTimeSync : 1;      ///< Indicates whether the message is also used for time sync purpose.
-    uint8_t mTimeSyncSeq;       ///< The time sync sequence.
     int64_t mNetworkTimeOffset; ///< The time offset to the Thread network time, in microseconds.
+    uint8_t mTimeSyncSeq;       ///< The time sync sequence.
+#endif
+#if OPENTHREAD_CONFIG_MULTI_RADIO
+    uint8_t mRadioType : 2;      ///< The radio link type the message was received on, or should be sent on.
+    bool    mIsRadioTypeSet : 1; ///< Indicates whether the radio type is set.
+
+    static_assert(Mac::kNumRadioTypes <= (1 << 2), "mRadioType bitfield cannot store all radio type values");
 #endif
 };
 
@@ -287,6 +301,8 @@ protected:
 class Message : public Buffer
 {
     friend class Checksum;
+    friend class Crypto::HmacSha256;
+    friend class Crypto::Sha256;
     friend class MessagePool;
     friend class MessageQueue;
     friend class PriorityQueue;
@@ -528,6 +544,23 @@ public:
      *
      */
     bool IsSubTypeMle(void) const;
+
+    /**
+     * This method checks whether this multicast message may be looped back.
+     *
+     * @retval TRUE   If message may be looped back.
+     * @retval FALSE  If message must not be looped back.
+     *
+     */
+    bool GetMulticastLoop(void) const { return GetMetadata().mMulticastLoop; }
+
+    /**
+     * This method sets whether multicast may be looped back.
+     *
+     * @param[in]  aMulticastLoop  Whether allow looping back multicast.
+     *
+     */
+    void SetMulticastLoop(bool aMulticastLoop) { GetMetadata().mMulticastLoop = aMulticastLoop; }
 
     /**
      * This method returns the message priority level.
@@ -1097,6 +1130,48 @@ public:
      */
     uint8_t GetTimeSyncSeq(void) const { return GetMetadata().mTimeSyncSeq; }
 #endif // OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
+
+#if OPENTHREAD_CONFIG_MULTI_RADIO
+    /**
+     * This method indicates whether the radio type is set.
+     *
+     * @retval TRUE   If the radio type is set.
+     * @retval FALSE  If the radio type is not set.
+     *
+     */
+    bool IsRadioTypeSet(void) const { return GetMetadata().mIsRadioTypeSet; }
+
+    /**
+     * This method gets the radio link type the message was received on, or should be sent on.
+     *
+     * This method should be used only when `IsRadioTypeSet()` returns `true`.
+     *
+     * @returns The radio link type of the message.
+     *
+     */
+    Mac::RadioType GetRadioType(void) const { return static_cast<Mac::RadioType>(GetMetadata().mRadioType); }
+
+    /**
+     * This method sets the radio link type the message was received on, or should be sent on.
+     *
+     * @param[in] aRadioType   A radio link type of the message.
+     *
+     */
+    void SetRadioType(Mac::RadioType aRadioType)
+    {
+        GetMetadata().mIsRadioTypeSet = true;
+        GetMetadata().mRadioType      = aRadioType;
+    }
+
+    /**
+     * This method clears any previously set radio type on the message.
+     *
+     * After calling this method, `IsRadioTypeSet()` returns false until radio type is set (`SetRadioType()`).
+     *
+     */
+    void ClearRadioType(void) { GetMetadata().mIsRadioTypeSet = false; }
+
+#endif // #if OPENTHREAD_CONFIG_MULTI_RADIO
 
 private:
     /**

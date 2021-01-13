@@ -33,6 +33,7 @@
 
 #include "notifier.hpp"
 
+#include "border_router/routing_manager.hpp"
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/locator-getters.hpp"
@@ -158,10 +159,10 @@ void Notifier::EmitEvents(void)
 #if OPENTHREAD_CONFIG_BORDER_AGENT_ENABLE
     Get<MeshCoP::BorderAgent>().HandleNotifierEvents(events);
 #endif
-#if OPENTHREAD_CONFIG_MLR_ENABLE || OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE
+#if OPENTHREAD_CONFIG_MLR_ENABLE || (OPENTHREAD_FTD && OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE)
     Get<MlrManager>().HandleNotifierEvents(events);
 #endif
-#if OPENTHREAD_CONFIG_DUA_ENABLE || OPENTHREAD_CONFIG_TMF_PROXY_DUA_ENABLE
+#if OPENTHREAD_CONFIG_DUA_ENABLE || (OPENTHREAD_FTD && OPENTHREAD_CONFIG_TMF_PROXY_DUA_ENABLE)
     Get<DuaManager>().HandleNotifierEvents(events);
 #endif
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
@@ -178,6 +179,9 @@ void Notifier::EmitEvents(void)
 #endif
 #if OPENTHREAD_ENABLE_VENDOR_EXTENSION
     Get<Extension::ExtensionBase>().HandleNotifierEvents(events);
+#endif
+#if OPENTHREAD_CONFIG_BORDER_ROUTING_ENABLE
+    Get<BorderRouter::RoutingManager>().HandleNotifierEvents(events);
 #endif
 
     for (ExternalCallback &callback : mExternalCallbacks)

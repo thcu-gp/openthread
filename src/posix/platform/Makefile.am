@@ -48,6 +48,7 @@ libopenthread_posix_a_SOURCES             = \
     backbone.cpp                            \
     entropy.cpp                             \
     hdlc_interface.cpp                      \
+    infra_if.cpp                            \
     logging.cpp                             \
     misc.cpp                                \
     multicast_routing.cpp                   \
@@ -57,6 +58,7 @@ libopenthread_posix_a_SOURCES             = \
     settings.cpp                            \
     spi_interface.cpp                       \
     system.cpp                              \
+    trel_udp6.cpp                           \
     uart.cpp                                \
     udp.cpp                                 \
     virtual_time.cpp                        \

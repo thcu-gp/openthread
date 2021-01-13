@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/expect -f
 #
-#  Copyright (c) 2016, The OpenThread Authors.
+#  Copyright (c) 2020, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -27,54 +27,54 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-import unittest
+source "tests/scripts/expect/_common.exp"
 
-import thread_cert
+spawn_node 1
+spawn_node 2
 
-LEADER = 1
-ROUTER1 = 2
-ROUTER2 = 3
+switch_node 1
+send "networkname Thread\\ Network\n"
+expect_line "Done"
+send "ifconfig up\n"
+expect_line "Done"
+send "thread start\n"
+expect_line "Done"
+wait_for "state" "leader"
+expect_line "Done"
 
+switch_node 2
+send "scan\n"
+expect "Thread Network"
+expect_line "Done"
 
-class Cert_5_3_6_RouterIdMask(thread_cert.TestCase):
-    TOPOLOGY = {
-        LEADER: {
-            'mode': 'rdn',
-            'panid': 0xface,
-            'allowlist': [ROUTER1]
-        },
-        ROUTER1: {
-            'mode': 'rdn',
-            'panid': 0xface,
-            'router_selection_jitter': 1,
-            'allowlist': [LEADER, ROUTER2]
-        },
-        ROUTER2: {
-            'mode': 'rdn',
-            'panid': 0xface,
-            'router_selection_jitter': 1,
-            'allowlist': [ROUTER1]
-        },
-    }
+switch_node 1
+send "thread stop\n"
+expect_line "Done"
+send "networkname Thread\\ 网络\n"
+expect_line "Done"
+send "thread start\n"
+expect_line "Done"
+wait_for "state" "leader"
+expect_line "Done"
 
-    def test(self):
-        self.nodes[LEADER].start()
-        self.simulator.go(5)
-        self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
+switch_node 2
+send "scan\n"
+expect "Thread 网络"
+expect_line "Done"
 
-        self.nodes[ROUTER1].start()
-        self.simulator.go(5)
-        self.assertEqual(self.nodes[ROUTER1].get_state(), 'router')
+switch_node 1
+send "thread stop\n"
+expect_line "Done"
+send "networkname スレッド\n"
+expect_line "Done"
+send "thread start\n"
+expect_line "Done"
+wait_for "state" "leader"
+expect_line "Done"
 
-        self.nodes[ROUTER2].start()
-        self.simulator.go(5)
-        self.assertEqual(self.nodes[ROUTER2].get_state(), 'router')
+switch_node 2
+send "scan\n"
+expect "スレッド"
+expect_line "Done"
 
-        self.nodes[ROUTER1].stop()
-        self.nodes[ROUTER2].stop()
-
-        self.simulator.go(300)
-
-
-if __name__ == '__main__':
-    unittest.main()
+dispose_all
