@@ -41,7 +41,7 @@ libopenthread_qpg6095_a_CPPFLAGS                = \
     -I$(top_srcdir)/examples/platforms/utils      \
     -I$(top_srcdir)/examples/platforms/qpg6095    \
     -lrt                                          \
-    -pthread                                     \
+    -lpthread                                     \
     $(NULL)
 
 PLATFORM_SOURCES                                = \
