@@ -25,6 +25,7 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
+#define _XOPEN_SOURCE 500
 
 #include "alarm_qorvo.h"
 #include "platform_qorvo.h"

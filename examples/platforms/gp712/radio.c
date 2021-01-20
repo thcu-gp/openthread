@@ -80,7 +80,7 @@ static otCachedSettings_t otCachedSettings;
 /* Upper layer relies on txpower could be set before receive, but MAC have per-channel config for it.
    Store txpower until channel set in Receive(). */
 #define PENDING_TX_POWER_NONE (-1)
-int8_t pendingTxPower = PENDING_TX_POWER_NONE;
+static int8_t pendingTxPower = PENDING_TX_POWER_NONE;
 
 static uint8_t sScanstate         = 0;
 static int8_t  sLastReceivedPower = 127;
